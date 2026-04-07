@@ -93,6 +93,14 @@ class AccountWorker:
             return 0
         return result[0]
 
+    def get_account_id_by_user(self, user_id):
+        self.cursor.execute(
+            "SELECT id FROM user_account WHERE user_id = ?",
+            (user_id,)
+        )
+        result = self.cursor.fetchone()
+        return result[0] if result else None
+
 class TransactionWorker:
     def __init__(self, cursor):
         self.cursor = cursor
@@ -119,19 +127,19 @@ user_worker = UserWorker(cursor)
 account_worker = AccountWorker(cursor)
 transaction_worker = TransactionWorker(cursor)
 
-def handle_deposit(manager, account_worker, transaction_worker, user_id):
+def handle_deposit(manager, account_worker, transaction_worker, account_id):
     amount = get_valid_amount("Enter your amount: ")
     if amount is None:
         return None
-    account_worker.handle_deposit(user_id, amount)
-    transaction_worker.create_transactions(user_id, "Deposit", amount, "Self")
-    balance = account_worker.get_balance(user_id)
+    account_worker.handle_deposit(account_id, amount)
+    transaction_worker.create_transactions(account_id, "Deposit", amount, "Self")
+    balance = account_worker.get_balance(account_id)
     print(f"Deposit successful. Your balance: {balance:.2f}")
 
     manager.connection.commit()
 
-def handle_withdrawal(manager, account_worker, transaction_worker, user_id):
-    balance = account_worker.get_balance(user_id)
+def handle_withdrawal(manager, account_worker, transaction_worker, account_id):
+    balance = account_worker.get_balance(account_id)
     if balance <= 0:
         print(f"Your balance: {balance:.2f}")
         return
@@ -142,9 +150,9 @@ def handle_withdrawal(manager, account_worker, transaction_worker, user_id):
         if amount > balance:
             print(f"Your balance: {balance:.2f}")
             continue
-        account_worker.handle_withdraw(user_id, amount)
-        transaction_worker.create_transactions(user_id, "Withdraw", amount, "Self")
-        balance = account_worker.get_balance(user_id)
+        account_worker.handle_withdraw(account_id, amount)
+        transaction_worker.create_transactions(account_id, "Withdraw", amount, "Self")
+        balance = account_worker.get_balance(account_id)
         print(f"Withdrawal successful. Your balance: {balance:.2f}")
 
         manager.connection.commit()
@@ -182,16 +190,16 @@ def login(user_worker):
             continue
         return user_id
 
-def show_transactions(transaction_worker, user_id):
-    result = transaction_worker.get_transactions(user_id)
+def show_transactions(transaction_worker, account_id):
+    result = transaction_worker.get_transactions(account_id)
     if not result:
         print("No transactions found.")
         return
     for data in result:
         print(f"Account ID: {data[1]}. Type: {data[2]}, Amount: {data[3]:.2f}, Target: {data[4]} {data[5]}")
 
-def get_summary(account_worker, transaction_worker, user_id):
-    txs = transaction_worker.get_transactions(user_id)
+def get_summary(account_worker, transaction_worker, account_id):
+    txs = transaction_worker.get_transactions(account_id)
     if not txs:
         print("No transactions found.")
         return
@@ -208,7 +216,7 @@ def get_summary(account_worker, transaction_worker, user_id):
         elif tx[2] == "Withdraw":
             withdrawal_count += 1
             withdrawal_total += tx[3]
-    get_balance = account_worker.get_balance(user_id)
+    get_balance = account_worker.get_balance(account_id)
     print("=")
     print(f"Deposit Count: 【{deposit_count}】")
     print(f"Deposit Total: 【{deposit_total:.2f}】")
@@ -230,23 +238,24 @@ def get_choice():
 
 try:
     user_id = login(user_worker)
+    account_id = account_worker.get_account_id_by_user(user_id)
     while True:
         choice = get_choice()
         if choice == "1":
-            handle_deposit(manager, account_worker, transaction_worker, user_id)
+            handle_deposit(manager, account_worker, transaction_worker, account_id)
 
         elif choice == "2":
-            handle_withdrawal(manager, account_worker, transaction_worker, user_id)
+            handle_withdrawal(manager, account_worker, transaction_worker, account_id)
 
         elif choice == "3":
-            balance = account_worker.get_balance(user_id)
+            balance = account_worker.get_balance(account_id)
             print(f"Your current balance: {balance:.2f}")
 
         elif choice == "4":
-            show_transactions(transaction_worker, user_id)
+            show_transactions(transaction_worker, account_id)
 
         elif choice == "5":
-            get_summary(account_worker, transaction_worker, user_id)
+            get_summary(account_worker, transaction_worker, account_id)
 
         elif choice == "0":
             print("Thank you for using Mini Bank.")
