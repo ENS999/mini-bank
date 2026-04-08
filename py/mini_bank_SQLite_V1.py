@@ -53,6 +53,7 @@ class UserWorker:
             "INSERT INTO user (user_name) VALUES (?)",
             (user_name,)
         )
+        return self.cursor.lastrowid
 
     def get_user(self, user_id):
         self.cursor.execute(
@@ -131,12 +132,17 @@ def handle_deposit(manager, account_worker, transaction_worker, account_id):
     amount = get_valid_amount("Enter your amount: ")
     if amount is None:
         return None
-    account_worker.handle_deposit(account_id, amount)
-    transaction_worker.create_transactions(account_id, "Deposit", amount, "Self")
-    balance = account_worker.get_balance(account_id)
-    print(f"Deposit successful. Your balance: {balance:.2f}")
+    try:
+        account_worker.handle_deposit(account_id, amount)
+        transaction_worker.create_transactions(account_id, "Deposit", amount, "Self")
+        manager.connection.commit()
 
-    manager.connection.commit()
+        balance = account_worker.get_balance(account_id)
+        print(f"Deposit successful. Your balance: {balance:.2f}")
+    except Exception:
+        manager.connection.rollback()
+        print("Transaction failed.")
+
 
 def handle_withdrawal(manager, account_worker, transaction_worker, account_id):
     balance = account_worker.get_balance(account_id)
@@ -150,13 +156,19 @@ def handle_withdrawal(manager, account_worker, transaction_worker, account_id):
         if amount > balance:
             print(f"Your balance: {balance:.2f}")
             continue
-        account_worker.handle_withdraw(account_id, amount)
-        transaction_worker.create_transactions(account_id, "Withdraw", amount, "Self")
-        balance = account_worker.get_balance(account_id)
-        print(f"Withdrawal successful. Your balance: {balance:.2f}")
 
-        manager.connection.commit()
-        return
+        try:
+            account_worker.handle_withdraw(account_id, amount)
+            transaction_worker.create_transactions(account_id, "Withdraw", amount, "Self")
+            manager.connection.commit()
+
+            balance = account_worker.get_balance(account_id)
+            print(f"Withdrawal successful. Your balance: {balance:.2f}")
+            return
+        except Exception:
+            manager.connection.rollback()
+            print("Transaction failed.")
+            return
 
 def get_valid_amount(prompt):
     while True:
@@ -172,6 +184,20 @@ def get_valid_amount(prompt):
           print("Amount must be greater than 0.")
           continue
       return amount
+
+
+def register(manager, user_worker, account_worker):
+    name = input("Enter your name: ").strip()
+    try:
+        user_id = user_worker.create_user(name)
+        account_worker.create_user_account(user_id, "savings")
+        manager.connection.commit()
+        print(f"Register successful. Your user ID is {user_id}.")
+        return
+    except Exception:
+        manager.connection.rollback()
+        print("Registration failed.")
+        return
 
 def login(user_worker):
     while True:
@@ -237,8 +263,14 @@ def get_choice():
     return choice
 
 try:
+    print("1：Login")
+    print("2：Register")
+    action = input("Enter your choice: ").strip()
+    if action == "2":
+        register(manager, user_worker, account_worker)  
     user_id = login(user_worker)
     account_id = account_worker.get_account_id_by_user(user_id)
+
     while True:
         choice = get_choice()
         if choice == "1":
