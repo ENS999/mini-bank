@@ -1,3 +1,8 @@
-bank.db
+*.db
 __pycache__/
-*.pyc
+.venv/
+py/*.py
+py/*.txt
+py/*.json
+py/exercism/
+!py/mini_bank/

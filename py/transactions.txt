@@ -1,4 +1,0 @@
-Deposit,100.00,100.00
-Withdrawal,30.00,70.00
-Deposit,abc,999
-haha,154
