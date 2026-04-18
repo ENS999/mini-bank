@@ -27,7 +27,7 @@ class AccountWorker:
         )
         result = self.cursor.fetchone()
         if result is None:
-            return 0
+            return
         return result[0]
 
     def get_account_id_by_user(self, user_id):

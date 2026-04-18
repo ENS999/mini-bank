@@ -1,8 +1,12 @@
 import sqlite3
+from .user_worker import UserWorker
+from .account_worker import AccountWorker
+from .transaction_worker import TransactionWorker
+from fastapi import FastAPI, HTTPException
 
 class BankManager:
     def __init__(self, db_path):
-        self.connection = sqlite3.connect(db_path)
+        self.connection = sqlite3.connect(db_path, check_same_thread=False)
     
     def get_cursor(self):
         return self.connection.cursor()
@@ -43,3 +47,94 @@ class BankManager:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_transactions_account_id ON transactions(account_id)")
         self.connection.commit()
         cursor.close()
+
+    def register(self, name, account_type):
+        cursor = self.connection.cursor()
+        try:
+            user_worker = UserWorker(cursor)
+            account_worker = AccountWorker(cursor)
+            user_id = user_worker.create_user(name)
+            account_worker.create_user_account(user_id, account_type)
+            account_id = account_worker.get_account_id_by_user(user_id)
+            self.connection.commit()
+            return {"user_id": user_id, "account_id": account_id}
+        except Exception:
+            self.connection.rollback()
+            raise
+        finally:
+            cursor.close()
+
+    def deposit(self, account_id, amount):
+        cursor = self.connection.cursor()
+        try:
+            account_worker = AccountWorker(cursor)
+            transaction_worker = TransactionWorker(cursor)
+            balance = account_worker.get_balance(account_id)
+            if balance is None:
+                raise HTTPException(status_code=404, detail="account not found")
+            account_worker.handle_deposit(account_id, amount)
+            transaction_worker.create_transactions(account_id, "deposit", amount, None)
+            self.connection.commit()
+            return
+        except HTTPException:
+            raise
+        except Exception:
+            self.connection.rollback()
+            raise
+        finally:
+            cursor.close()
+
+    def withdrawal(self, account_id, amount):
+        cursor = self.connection.cursor()
+        try:
+            account_worker = AccountWorker(cursor)
+            transaction_worker = TransactionWorker(cursor)
+            balance = account_worker.get_balance(account_id)
+            if balance is None:
+                raise HTTPException(status_code=404, detail="account not found")
+            if balance < amount:
+                raise HTTPException(status_code=400, detail="insufficient balance")
+            account_worker.handle_withdraw(account_id, amount)
+            transaction_worker.create_transactions(account_id, "withdraw", amount, None)
+            self.connection.commit()
+            return
+        except HTTPException:
+            raise
+        except Exception:
+            self.connection.rollback()
+            raise
+        finally:
+            cursor.close()
+
+    def get_balance(self, account_id):
+        cursor = self.connection.cursor()
+        try:
+            account_worker = AccountWorker(cursor)
+            balance = account_worker.get_balance(account_id)
+            if balance is None:
+                raise HTTPException(status_code=404, detail="account not found")
+            return balance
+        finally:
+            cursor.close()
+
+    def get_transactions(self, account_id):
+        cursor = self.connection.cursor()
+        try:
+            account_worker = AccountWorker(cursor)
+            transaction_worker = TransactionWorker(cursor)
+            balance = account_worker.get_balance(account_id)
+            if balance is None:
+                raise HTTPException(status_code=404, detail="account not found")
+            rows = transaction_worker.get_transactions(account_id)
+            return [
+                {
+                    "account_id": r[1],
+                    "type": r[2],
+                    "amount": r[3],
+                    "target": r[4],
+                    "timestamp": r[5]
+                }
+                for r in rows
+            ]
+        finally:
+            cursor.close()
