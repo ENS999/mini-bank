@@ -1,0 +1,33 @@
+{
+    "balance": 0.0,
+    "transactions": [
+        {
+            "type": "deposit",
+            "amount": 1000.0,
+            "balance": 1000.0
+        },
+        {
+            "type": "withdrawal",
+            "amount": 500.0,
+            "balance": 500.0
+        },
+        {
+            "type": "deposit",
+            "amount": 1000.0,
+            "balance": 1500.0,
+            "note": ""
+        },
+        {
+            "type": "withdrawal",
+            "amount": 500.0,
+            "balance": 1000.0,
+            "note": ""
+        },
+        {
+            "type": "withdrawal",
+            "amount": 1000.0,
+            "balance": 0.0,
+            "note": ""
+        }
+    ]
+}
