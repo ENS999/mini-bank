@@ -3,6 +3,14 @@ from .user_worker import UserWorker
 from .account_worker import AccountWorker
 from .transaction_worker import TransactionWorker
 from fastapi import FastAPI, HTTPException
+from passlib.context import CryptContext
+from jose import jwt
+from datetime import datetime, timedelta, timezone
+
+SECRET_KEY = "your-secret-key-change-this"
+ALGORITHM = "HS256"
+
+pwd_context = CryptContext(schemes=["bcrypt"])
 
 class BankManager:
     def __init__(self, db_path):
@@ -19,7 +27,8 @@ class BankManager:
         cursor.execute("""
                CREATE TABLE IF NOT EXISTS user (
                id INTEGER PRIMARY KEY,
-               user_name TEXT
+               user_name TEXT UNIQUE,
+               password TEXT
                )
                """)
         cursor.execute("""
@@ -48,18 +57,39 @@ class BankManager:
         self.connection.commit()
         cursor.close()
 
-    def register(self, name, account_type):
+    def register(self, name, password, account_type):
         cursor = self.connection.cursor()
         try:
             user_worker = UserWorker(cursor)
             account_worker = AccountWorker(cursor)
-            user_id = user_worker.create_user(name)
+            hashed_password = pwd_context.hash(password)
+            user_id = user_worker.create_user(name, hashed_password)
             account_worker.create_user_account(user_id, account_type)
             account_id = account_worker.get_account_id_by_user(user_id)
             self.connection.commit()
             return {"user_id": user_id, "account_id": account_id}
         except Exception:
             self.connection.rollback()
+            raise
+        finally:
+            cursor.close()
+
+    def login(self, name, password):
+        cursor = self.connection.cursor()
+        try:
+            user_worker = UserWorker(cursor)
+            user = user_worker.get_user_by_name(name)
+            if user is None:
+                raise HTTPException(status_code=401, detail="invalid credentials")
+            if not pwd_context.verify(password, user[2]):
+                raise HTTPException(status_code=401, detail="invalid credentials")
+            token = jwt.encode(
+                {"user_id": user[0], "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
+                SECRET_KEY,
+                algorithm=ALGORITHM
+            )
+            return token
+        except HTTPException:
             raise
         finally:
             cursor.close()

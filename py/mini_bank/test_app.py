@@ -1,5 +1,12 @@
 from fastapi.testclient import TestClient
 from app import app
+from models import BankManager
+
+test_manager = BankManager(":memory:")
+test_manager.create_table()
+
+import app as app_module
+app_module.manager = test_manager
 
 client = TestClient(app)
 
