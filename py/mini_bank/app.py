@@ -54,12 +54,12 @@ def login(request: LoginRequest):
 
 @app.post("/deposit")
 def deposit(request: DepositRequest, user_id: int = Depends(get_current_user)):
-    manager.deposit(request.account_id, request.amount)
+    manager.deposit(request.account_id, request.amount, user_id)
     return {"message": "deposit successful"}
 
 @app.post("/withdrawal")
 def withdrawal(request: WithdrawalRequest, user_id: int = Depends(get_current_user)):
-    manager.withdrawal(request.account_id, request.amount)
+    manager.withdrawal(request.account_id, request.amount, user_id)
     return{"message": "withdrawal successful"}
 
 @app.get("/balance/{account_id}")

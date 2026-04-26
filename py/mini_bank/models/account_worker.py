@@ -37,3 +37,13 @@ class AccountWorker:
         )
         result = self.cursor.fetchone()
         return result[0] if result else None
+
+    def verify_owner(self, account_id, user_id):
+        self.cursor.execute(
+            "SELECT user_id FROM user_account WHERE id = ?",
+            (account_id,)
+        )
+        result = self.cursor.fetchone()
+        if result is None:
+            return None
+        return result[0] == user_id

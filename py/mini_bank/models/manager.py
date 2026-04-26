@@ -94,11 +94,16 @@ class BankManager:
         finally:
             cursor.close()
 
-    def deposit(self, account_id, amount):
+    def deposit(self, account_id, amount, user_id):
         cursor = self.connection.cursor()
         try:
             account_worker = AccountWorker(cursor)
             transaction_worker = TransactionWorker(cursor)
+            check_user = account_worker.verify_owner(account_id, user_id)
+            if check_user is False:
+                raise HTTPException(status_code=403, detail="forbidden")
+            if check_user is None:
+                raise HTTPException(status_code=404, detail="account not found")
             balance = account_worker.get_balance(account_id)
             if balance is None:
                 raise HTTPException(status_code=404, detail="account not found")
@@ -114,11 +119,16 @@ class BankManager:
         finally:
             cursor.close()
 
-    def withdrawal(self, account_id, amount):
+    def withdrawal(self, account_id, amount, user_id):
         cursor = self.connection.cursor()
         try:
             account_worker = AccountWorker(cursor)
             transaction_worker = TransactionWorker(cursor)
+            check_user = account_worker.verify_owner(account_id, user_id)
+            if check_user is False:
+                raise HTTPException(status_code=403, detail="forbidden")
+            if check_user is None:
+                raise HTTPException(status_code=404, detail="account not found")
             balance = account_worker.get_balance(account_id)
             if balance is None:
                 raise HTTPException(status_code=404, detail="account not found")
