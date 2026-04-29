@@ -4,10 +4,13 @@ from models.manager import BankManager
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 security = HTTPBearer()
 
-SECRET_KEY = "your-secret-key-change-this"
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
