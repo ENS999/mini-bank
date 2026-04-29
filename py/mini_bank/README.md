@@ -23,7 +23,7 @@ This project is a banking system simulation built with FastAPI. It features acco
 
 ## Project Structure
 
-````bash
+```
 mini_bank/
 ├── app.py              # API routes, JWT auth
 ├── main.py             # Entry point
@@ -42,13 +42,13 @@ mini_bank/
 
 ## API Endpoints
 
-| Method | Endpoint                     | Description | Auth |
-|--------|------------------------------|-------------|------|
-| POST   | `/register`                  | 註冊帳戶    | No   |
+| Method | Endpoint                     | Description  | Auth |
+| ------ | ---------------------------- | ------------ | ---- |
+| POST   | `/register`                  | 註冊帳戶     | No   |
 | POST   | `/login`                     | 登入取得 JWT | No   |
-| POST   | `/deposit`                   | 存款        | Yes  |
-| POST   | `/withdrawal`                | 取款        | Yes  |
-| GET    | `/balance/{account_id}`      | 查詢餘額    | Yes  |
+| POST   | `/deposit`                   | 存款         | Yes  |
+| POST   | `/withdrawal`                | 取款         | Yes  |
+| GET    | `/balance/{account_id}`      | 查詢餘額     | Yes  |
 | GET    | `/transactions/{account_id}` | 查詢交易紀錄 | Yes  |
 
 ---
@@ -57,33 +57,38 @@ mini_bank/
 
 ### Local
 
-1. Clone the repo
-```bash
+Clone the repo and enter the project directory:
+
+```
 git clone https://github.com/ENS999/mini-bank.git
 cd mini-bank/py/mini_bank
 ```
 
-2. Install dependencies
-```bash
+Install dependencies:
+
+```
 pip install -r requirements.txt
 ```
 
-3. Set up environment variables
-```bash
+Set up environment variables:
+
+```
 cp .env.example .env
-# Edit .env and set your SECRET_KEY
 ```
 
-4. Run the server
-```bash
+Edit `.env` and set your own `SECRET_KEY`.
+
+Run the server:
+
+```
 uvicorn app:app --reload
 ```
 
-5. Open browser: http://127.0.0.1:8000/docs
+Open browser: http://127.0.0.1:8000/docs
 
 ### Docker
 
-```bash
+```
 docker build -t mini-bank .
 docker run --env-file .env -p 8000:8000 mini-bank
 ```
@@ -94,7 +99,6 @@ Open browser: http://localhost:8000/docs
 
 ## Run Tests
 
-```bash
+```
 pytest test_app.py -v
 ```
-````
