@@ -4,14 +4,9 @@ from models.manager import BankManager
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
-from dotenv import load_dotenv
-import os
+from config import SECRET_KEY, ALGORITHM
 
-load_dotenv()
 security = HTTPBearer()
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = "HS256"
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
@@ -34,7 +29,7 @@ class LoginRequest(BaseModel):
 
 class RegisterRequest(BaseModel):
     name: str
-    password: str
+    password: str = Field(min_length=6)
     account_type: str
 
 class DepositRequest(BaseModel):
@@ -67,12 +62,12 @@ def withdrawal(request: WithdrawalRequest, user_id: int = Depends(get_current_us
 
 @app.get("/balance/{account_id}")
 def get_balance(account_id: int, user_id: int = Depends(get_current_user)):
-    balance = manager.get_balance(account_id)
+    balance = manager.get_balance(account_id, user_id)
     return {"balance": balance}
 
 @app.get("/transactions/{account_id}")
 def get_transactions(account_id: int, user_id: int = Depends(get_current_user)):
-    result = manager.get_transactions(account_id)
+    result = manager.get_transactions(account_id, user_id)
     return result
 
 if __name__ == "__main__":

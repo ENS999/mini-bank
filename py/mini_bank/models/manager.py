@@ -6,9 +6,7 @@ from fastapi import FastAPI, HTTPException
 from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timedelta, timezone
-
-SECRET_KEY = "your-secret-key-change-this"
-ALGORITHM = "HS256"
+from config import SECRET_KEY, ALGORITHM
 
 pwd_context = CryptContext(schemes=["bcrypt"])
 
@@ -63,6 +61,9 @@ class BankManager:
             user_worker = UserWorker(cursor)
             account_worker = AccountWorker(cursor)
             hashed_password = pwd_context.hash(password)
+            existing = user_worker.get_user_by_name(name)
+            if existing:
+                raise HTTPException(status_code=400, detail="username already exists")
             user_id = user_worker.create_user(name, hashed_password)
             account_worker.create_user_account(user_id, account_type)
             account_id = account_worker.get_account_id_by_user(user_id)
@@ -104,9 +105,6 @@ class BankManager:
                 raise HTTPException(status_code=403, detail="forbidden")
             if check_user is None:
                 raise HTTPException(status_code=404, detail="account not found")
-            balance = account_worker.get_balance(account_id)
-            if balance is None:
-                raise HTTPException(status_code=404, detail="account not found")
             account_worker.handle_deposit(account_id, amount)
             transaction_worker.create_transactions(account_id, "deposit", amount, None)
             self.connection.commit()
@@ -146,22 +144,32 @@ class BankManager:
         finally:
             cursor.close()
 
-    def get_balance(self, account_id):
+    def get_balance(self, account_id, user_id):
         cursor = self.connection.cursor()
         try:
             account_worker = AccountWorker(cursor)
             balance = account_worker.get_balance(account_id)
+            check_user = account_worker.verify_owner(account_id, user_id)
+            if check_user is False:
+                raise HTTPException(status_code=403, detail="forbidden")
+            if check_user is None:
+                raise HTTPException(status_code=404, detail="account not found")
             if balance is None:
                 raise HTTPException(status_code=404, detail="account not found")
             return balance
         finally:
             cursor.close()
 
-    def get_transactions(self, account_id):
+    def get_transactions(self, account_id, user_id):
         cursor = self.connection.cursor()
         try:
             account_worker = AccountWorker(cursor)
             transaction_worker = TransactionWorker(cursor)
+            check_user = account_worker.verify_owner(account_id, user_id)
+            if check_user is False:
+                raise HTTPException(status_code=403, detail="forbidden")
+            if check_user is None:
+                raise HTTPException(status_code=404, detail="account not found")
             balance = account_worker.get_balance(account_id)
             if balance is None:
                 raise HTTPException(status_code=404, detail="account not found")
