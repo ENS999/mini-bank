@@ -26,11 +26,12 @@ This project is a banking system simulation built with FastAPI. It features acco
 ```
 mini_bank/
 ├── app.py              # API routes, JWT auth
-├── main.py             # Entry point
+├── config.py           # Environment variables (SSOT)
 ├── models/
-│   └── manager.py      # BankManager (business logic)
-├── services/           # Worker layer
-├── utils/              # Utility functions
+│   ├── manager.py      # BankManager (business logic)
+│   ├── user_worker.py
+│   ├── account_worker.py
+│   └── transaction_worker.py
 ├── test_app.py         # pytest test cases
 ├── Dockerfile
 ├── requirements.txt
